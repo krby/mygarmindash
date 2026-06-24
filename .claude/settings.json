@@ -1,0 +1,31 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python:*)",
+      "Bash(uv:*)",
+      "Bash(pip install:*)",
+      "Bash(pip:*)",
+      "Bash(npm install:*)",
+      "Bash(npm run:*)",
+      "Bash(npm ci:*)",
+      "Bash(npx:*)",
+      "Bash(node:*)",
+      "Bash(wrangler:*)",
+      "Bash(turso:*)",
+      "Bash(ls:*)",
+      "Bash(cat sync/config.toml)",
+      "Bash(cat sync/.env.example)",
+      "Bash(tree:*)",
+      "PowerShell(python:*)",
+      "PowerShell(uv:*)",
+      "PowerShell(npm:*)",
+      "PowerShell(wrangler:*)",
+      "PowerShell(turso:*)"
+    ],
+    "deny": [
+      "Bash(rm -rf:*)",
+      "Bash(git push --force:*)",
+      "Bash(git push -f:*)"
+    ]
+  }
+}

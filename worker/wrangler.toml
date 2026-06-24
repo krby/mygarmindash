@@ -1,0 +1,19 @@
+name = "mygarmindash"
+main = "src/index.ts"
+compatibility_date = "2025-09-01"
+compatibility_flags = ["nodejs_compat"]
+
+# PWA build output is mounted as static assets. `npm run build` in pwa/
+# writes to ../worker/dist/pwa.
+[assets]
+directory = "./dist/pwa"
+binding = "ASSETS"
+not_found_handling = "single-page-application"
+
+# Secrets are set via `wrangler secret put`:
+#   TURSO_URL
+#   TURSO_AUTH_TOKEN
+#   APP_TOKEN
+
+[observability]
+enabled = true

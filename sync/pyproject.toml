@@ -1,0 +1,22 @@
+[project]
+name = "mygarmindash-sync"
+version = "0.1.0"
+description = "Sync local Garmin SQLite DB to Turso"
+requires-python = ">=3.10"
+dependencies = [
+    "libsql-client>=0.3.1",
+    "python-dotenv>=1.2.2",
+    "tomli>=2.4.1 ; python_version < '3.11'",
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=9.1.0",
+]
+
+[tool.uv]
+# Script-based app, not an installable package — don't try to build it.
+package = false
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

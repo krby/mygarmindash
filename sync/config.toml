@@ -1,0 +1,57 @@
+# sync configuration — checked in. Secrets live in .env.
+#
+# Table names match the real `garmin-givemydata` schema (singular forms:
+# `activity`, `stress`, `weight`, `vo2max`, etc.). These names flow through
+# unchanged: the Worker is a thin SQL passthrough that does not alias columns
+# or rename tables. Any renaming/derivation happens in pwa/src/lib/garmin.ts.
+
+[sync]
+batch_size    = 500
+retry_attempts = 3
+log_path      = "logs/sync.log"
+log_level     = "INFO"
+
+# Tables with a monotonic date/timestamp column. We sync rows newer than the
+# remote MAX(column). Values are the watermark column name.
+#
+# Run `uv run sync_to_cloud.py --discover-tables` to list anything present
+# locally that isn't yet classified, then add to either [tables.incremental]
+# or [tables.replace.tables] below.
+[tables.incremental]
+daily_summary       = "calendar_date"
+sleep               = "calendar_date"
+activity            = "start_time_local"
+stress              = "calendar_date"
+body_battery        = "calendar_date"
+hrv                 = "calendar_date"
+hrv_timeline        = "calendar_date"
+heart_rate          = "calendar_date"
+intensity_minutes   = "calendar_date"
+steps               = "calendar_date"
+floors              = "calendar_date"
+weight              = "calendar_date"
+training_status     = "calendar_date"
+training_readiness  = "calendar_date"
+vo2max              = "calendar_date"
+hydration           = "calendar_date"
+spo2                = "calendar_date"
+
+# Activity-child tables: no date column. Each row is keyed by activity_id
+# (and a sub-index). Treat them as "replace per-activity" via the parent
+# `activity` watermark — i.e. when a new activity_id appears, fetch its
+# children. This requires a small sync_to_cloud.py change; until that's
+# implemented, classify as replace so they backfill fully each run.
+# TODO: promote to incremental once activity-child sync logic exists.
+
+# Small lookup-style + activity-child tables — wipe and re-insert each run.
+[tables.replace]
+tables = [
+    "activity_splits",
+    "activity_hr_zones",
+    "activity_weather",
+    "activity_exercise_sets",
+    "personal_record",
+    "device",
+    "gear",
+    "earned_badges",
+]
