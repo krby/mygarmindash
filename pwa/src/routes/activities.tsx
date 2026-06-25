@@ -4,10 +4,14 @@ import { useActivities, useActivity, usePrefetchActivities } from "../api/hooks"
 import type { ActivityRow } from "../api/types";
 import { WorkoutCard } from "../components/workout-card";
 import { CollapsibleCard } from "../components/collapsible-card";
+import { ActivityCalendar, dayKey } from "../components/activity-calendar";
 import { ErrorState, Loading } from "../components/state";
 import { formatDateLong, formatDistance, formatDuration } from "../lib/format";
 
 const RANGE_OPTIONS = [30, 90, 180, 365];
+
+const VIEWS = ["calendar", "list"] as const;
+type View = (typeof VIEWS)[number];
 
 const selectClass =
   "min-h-12 w-full rounded-xl border border-line bg-surface-2 px-3 text-ink";
@@ -62,10 +66,30 @@ function ActivityItem({
   );
 }
 
+/** Vertical list of expandable activity cards; one open at a time. */
+function ActivityList({ activities }: { activities: ActivityRow[] }) {
+  const [openId, setOpenId] = useState<number | null>(null);
+  return (
+    <ul className="flex flex-col gap-2">
+      {activities.map((a) => (
+        <ActivityItem
+          key={a.activity_id}
+          activity={a}
+          open={openId === a.activity_id}
+          onToggle={() =>
+            setOpenId((cur) => (cur === a.activity_id ? null : a.activity_id))
+          }
+        />
+      ))}
+    </ul>
+  );
+}
+
 export default function Activities() {
   const [days, setDays] = useState(30);
   const [type, setType] = useState<string>("");
-  const [openId, setOpenId] = useState<number | null>(null);
+  const [view, setView] = useState<View>("calendar");
+  const [selectedDay, setSelectedDay] = useState<string | null>(null);
   const q = useActivities(days, type || undefined);
   usePrefetchActivities(q.data, 5);
 
@@ -77,9 +101,33 @@ export default function Activities() {
     return Array.from(set).sort();
   }, [q.data]);
 
+  const dayActivities = useMemo(
+    () =>
+      selectedDay
+        ? (q.data ?? []).filter((a) => dayKey(a.start_time_local) === selectedDay)
+        : [],
+    [q.data, selectedDay],
+  );
+
   return (
     <div className="flex flex-col gap-4">
       <h1 className="text-2xl font-bold text-ink">Activities</h1>
+
+      <div className="flex rounded-xl bg-surface-2 p-1">
+        {VIEWS.map((v) => (
+          <button
+            key={v}
+            type="button"
+            onClick={() => setView(v)}
+            className={
+              "min-h-11 flex-1 rounded-lg text-sm font-medium capitalize transition-colors " +
+              (view === v ? "bg-accent text-white" : "text-muted")
+            }
+          >
+            {v}
+          </button>
+        ))}
+      </div>
 
       <div className="grid grid-cols-2 gap-3">
         <label className="flex flex-col gap-1 text-xs text-muted">
@@ -119,19 +167,28 @@ export default function Activities() {
         <ErrorState error={q.error} onRetry={() => q.refetch()} />
       ) : (q.data ?? []).length === 0 ? (
         <p className="py-12 text-center text-muted">No activities in this range.</p>
+      ) : view === "list" ? (
+        <ActivityList activities={q.data!} />
       ) : (
-        <ul className="flex flex-col gap-2">
-          {q.data!.map((a) => (
-            <ActivityItem
-              key={a.activity_id}
-              activity={a}
-              open={openId === a.activity_id}
-              onToggle={() =>
-                setOpenId((cur) => (cur === a.activity_id ? null : a.activity_id))
-              }
-            />
-          ))}
-        </ul>
+        <>
+          <ActivityCalendar
+            activities={q.data!}
+            selected={selectedDay}
+            onSelect={setSelectedDay}
+          />
+          {selectedDay && dayActivities.length > 0 ? (
+            <div className="flex flex-col gap-2">
+              <h2 className="text-sm font-semibold uppercase tracking-wide text-muted">
+                {formatDateLong(dayActivities[0]!.start_time_local)}
+              </h2>
+              <ActivityList activities={dayActivities} />
+            </div>
+          ) : (
+            <p className="py-6 text-center text-sm text-muted">
+              Tap a highlighted day to see its activities.
+            </p>
+          )}
+        </>
       )}
     </div>
   );
