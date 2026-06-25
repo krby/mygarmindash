@@ -66,7 +66,7 @@ export function ActivityCalendar({
     "flex h-10 w-10 items-center justify-center rounded-lg text-xl text-muted active:bg-surface-2";
 
   return (
-    <div className="rounded-2xl border border-line/60 bg-surface p-3">
+    <div className="rounded-[var(--radius-card)] border border-line/70 bg-surface p-3">
       <div className="mb-2 flex items-center justify-between">
         <button
           type="button"
@@ -102,7 +102,7 @@ export function ActivityCalendar({
           const isSel = selected === key;
 
           let cls = "text-muted";
-          if (isSel) cls = "bg-accent font-semibold text-white";
+          if (isSel) cls = "bg-accent font-semibold text-bg";
           else if (has) cls = "bg-surface-2/60 font-medium text-ink active:bg-surface-2";
           else if (!inMonth) cls = "text-muted/40";
           if (!isSel && isToday(d)) cls += " ring-1 ring-accent";
@@ -123,7 +123,7 @@ export function ActivityCalendar({
                 <span
                   className={
                     "absolute bottom-1 h-1.5 w-1.5 rounded-full " +
-                    (isSel ? "bg-white" : "bg-accent")
+                    (isSel ? "bg-bg" : "bg-accent")
                   }
                 />
               )}

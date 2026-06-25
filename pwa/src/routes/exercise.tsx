@@ -79,10 +79,8 @@ export default function Exercise() {
       </header>
 
       <Card>
-        <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-muted">
-          Records
-        </h2>
-        <StatGrid>
+        <h2 className="eyebrow mb-4">Records</h2>
+        <StatGrid cols={2}>
           <Stat label="Heaviest" value={formatStrengthWeight(r.maxWeightGrams)} />
           <Stat label="Max reps" value={r.maxReps ?? "—"} />
           <Stat label="Est. 1RM" value={formatStrengthWeight(r.bestEst1RmGrams)} />
@@ -90,21 +88,19 @@ export default function Exercise() {
         </StatGrid>
       </Card>
 
-      <section className="flex flex-col gap-3">
-        <h2 className="text-sm font-semibold uppercase tracking-wide text-muted">
-          All sessions
-        </h2>
+      <section className="flex flex-col gap-4">
+        <h2 className="eyebrow">All sessions</h2>
         {shown.map((session) => (
           <Link
             key={session.activityId}
             to={`/activities/${session.activityId}`}
-            className="block rounded-xl active:opacity-70"
+            className="block active:opacity-70"
           >
             <div className="mb-1 flex items-center justify-between text-sm font-medium text-accent">
               <span>{formatDateLongMaybeYear(session.date)}</span>
               <span aria-hidden="true">→</span>
             </div>
-            <ul className="divide-y divide-line/40 rounded-xl bg-surface-2/50 px-3">
+            <ul className="divide-y divide-line/40 border-t border-line/40">
               {session.sets.map((set, i) => (
                 <SetRow key={i} index={i + 1} set={set} />
               ))}
@@ -116,7 +112,7 @@ export default function Exercise() {
           <button
             type="button"
             onClick={() => setVisible((v) => v + PAGE)}
-            className="min-h-12 rounded-xl border border-line bg-surface-2 px-4 text-sm font-semibold text-ink active:opacity-80"
+            className="min-h-12 rounded-xl border border-line bg-surface px-4 text-sm font-semibold text-ink active:opacity-70"
           >
             Show more ({remaining} left)
           </button>

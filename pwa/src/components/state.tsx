@@ -23,14 +23,14 @@ export function ErrorState({
   const msg = error instanceof Error ? error.message : "Something went wrong.";
   return (
     <div
-      className="flex flex-col items-center gap-3 py-12 text-center text-danger"
+      className="flex flex-col items-center gap-4 py-12 text-center"
       role="alert"
     >
-      <p>{msg}</p>
+      <p className="text-danger">{msg}</p>
       {onRetry && (
         <button
           type="button"
-          className="min-h-12 rounded-xl bg-surface-2 px-4 font-semibold text-ink active:opacity-80"
+          className="min-h-12 rounded-xl border border-line bg-surface px-5 font-semibold text-ink active:opacity-70"
           onClick={onRetry}
         >
           Retry

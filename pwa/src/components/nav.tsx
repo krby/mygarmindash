@@ -57,12 +57,23 @@ export function Nav() {
           key={it.to}
           to={it.to}
           className={({ isActive }) =>
-            "flex min-h-[64px] flex-col items-center justify-center gap-1 text-xs " +
+            "flex min-h-[64px] flex-col items-center justify-center gap-1.5 text-[11px] font-medium tracking-wide transition-colors " +
             (isActive ? "text-accent" : "text-muted")
           }
         >
-          {it.icon}
-          <span>{it.label}</span>
+          {({ isActive }) => (
+            <>
+              <span
+                className={
+                  "flex h-7 w-12 items-center justify-center rounded-full transition-colors " +
+                  (isActive ? "bg-accent/12" : "")
+                }
+              >
+                {it.icon}
+              </span>
+              <span>{it.label}</span>
+            </>
+          )}
         </NavLink>
       ))}
     </nav>

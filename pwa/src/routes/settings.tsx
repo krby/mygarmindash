@@ -9,7 +9,7 @@ import { formatDateLong } from "../lib/format";
 const btn =
   "min-h-12 rounded-xl px-4 font-semibold active:opacity-80 disabled:opacity-50";
 const btnPrimary = btn + " bg-accent text-bg";
-const btnSecondary = btn + " bg-surface-2 text-ink";
+const btnSecondary = btn + " border border-line bg-surface text-ink";
 
 export default function Settings() {
   const qc = useQueryClient();
@@ -77,7 +77,7 @@ export default function Settings() {
             onChange={(e) => setTokenInput(e.target.value)}
             autoComplete="off"
             spellCheck={false}
-            className="min-h-12 flex-1 rounded-xl border border-line bg-surface-2 px-3 text-ink placeholder:text-muted"
+            className="min-h-12 flex-1 rounded-xl border border-line bg-surface px-3 text-ink placeholder:text-muted"
           />
           <button className={btnPrimary} type="button" onClick={save} disabled={!token.trim()}>
             {saved ? "Saved" : "Save"}

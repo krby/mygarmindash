@@ -19,15 +19,15 @@ export function CollapsibleCard({
   children: ReactNode;
 }) {
   return (
-    <li className="overflow-hidden rounded-2xl border border-line/60 bg-surface">
+    <li className="border-b border-line/70">
       <button
         type="button"
         onClick={onToggle}
-        className="flex w-full items-center justify-between gap-3 px-4 py-3 text-left active:bg-surface-2/50"
+        className="flex w-full items-center justify-between gap-3 py-3.5 text-left active:opacity-60"
       >
         <div className="min-w-0">
           <div className="truncate font-semibold text-ink">{title}</div>
-          <div className="mt-0.5 flex flex-wrap gap-x-3 gap-y-0.5 text-sm text-muted">
+          <div className="mt-1 flex flex-wrap gap-x-3 gap-y-0.5 text-sm text-muted tabular-nums">
             {subtitle}
           </div>
         </div>
@@ -38,7 +38,10 @@ export function CollapsibleCard({
           strokeWidth={2}
           strokeLinecap="round"
           strokeLinejoin="round"
-          className={"h-5 w-5 shrink-0 text-muted transition-transform " + (open ? "rotate-180" : "")}
+          className={
+            "h-5 w-5 shrink-0 transition-transform " +
+            (open ? "rotate-180 text-accent" : "text-muted")
+          }
           aria-hidden="true"
         >
           <path d="m6 9 6 6 6-6" />

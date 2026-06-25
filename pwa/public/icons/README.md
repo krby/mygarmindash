@@ -11,6 +11,10 @@ Quick options:
 - [maskable.app](https://maskable.app/editor) — drop any SVG/PNG, export both maskable and regular variants.
 - ImageMagick: `magick convert source.svg -resize 192x192 icon-192.png`
 
-These three PNGs are present (navy `#0b132b` ECG-pulse mark, generated with
-Pillow). Replace them with your own artwork the same way if you want a different
-icon — keep the maskable variant's content within the central 80% safe area.
+These three PNGs are present: a refined teal (`#5ec5c0`) ECG-pulse mark on the
+near-black (`#0a0a0b`) "editorial dark" ground, matching the app palette. They
+were generated with a stdlib-only script (`zlib`+`struct`, no Pillow) — see
+`scratchpad/gen_icons.py` from the design pass; tweak the palette/`ECG` polyline
+there and re-run to regenerate. Replace them with your own artwork the same way
+if you want a different icon — keep the maskable variant's content within the
+central 80% safe area.

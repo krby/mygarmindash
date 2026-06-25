@@ -1,22 +1,23 @@
 @import "tailwindcss";
 
 /*
- * Dark palette ported from the original hand-rolled theme, exposed as Tailwind
- * v4 design tokens. These generate utilities like `bg-surface`, `text-muted`,
+ * "Editorial dark" palette — a near-black ground with hairline rules instead of
+ * heavy boxes, so oversized numbers carry the page. Exposed as Tailwind v4
+ * design tokens that generate utilities like `bg-surface`, `text-muted`,
  * `text-accent`, `border-line`, etc. Content is auto-detected by the Vite plugin.
  */
 @theme {
-  --color-bg: #0b132b;
-  --color-surface: #1c2541;
-  --color-surface-2: #2a3258;
-  --color-line: #2a3258;
-  --color-ink: #f6f7fb;
-  --color-muted: #a3acc9;
-  --color-accent: #5bc0be;
+  --color-bg: #0a0a0b; /* near-black ground */
+  --color-surface: #141417; /* barely-raised quiet section */
+  --color-surface-2: #1c1c20; /* inset wells (set lists, chips) */
+  --color-line: #27272d; /* hairline rules + borders */
+  --color-ink: #fafafa;
+  --color-muted: #8a8a95; /* cool dim grey for labels/meta */
+  --color-accent: #5ec5c0; /* refined muted teal */
   --color-accent-strong: #3aafa9;
-  --color-danger: #ef4444;
+  --color-danger: #f87171; /* softened red, easier on a dark ground */
 
-  --radius-card: 16px;
+  --radius-card: 18px;
 
   --tab-h: 64px;
 }
@@ -35,10 +36,30 @@ body,
   color: var(--color-ink);
   font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue",
     sans-serif;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
   -webkit-tap-highlight-color: transparent;
 }
 
 @layer components {
+  /* Tiny uppercase label that sits above/below a metric — the editorial eyebrow. */
+  .eyebrow {
+    font-size: 0.6875rem; /* 11px */
+    font-weight: 500;
+    line-height: 1;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--color-muted);
+  }
+
+  /* Oversized hero number. Tabular figures + tight tracking so it reads as data. */
+  .metric {
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -0.02em;
+    line-height: 1;
+    color: var(--color-ink);
+  }
+
   .spinner {
     display: inline-block;
     width: 1rem;

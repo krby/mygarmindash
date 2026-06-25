@@ -8,7 +8,7 @@ import {
   formatTime,
 } from "../lib/format";
 import { groupExerciseSets, setDurationsByType } from "../lib/garmin";
-import { Card, Stat, StatGrid } from "./ui";
+import { MetricRow, Stat, StatGrid } from "./ui";
 import { ExerciseSets } from "./exercise-sets";
 
 interface Metric {
@@ -87,25 +87,23 @@ export function WorkoutCard({
   ];
 
   return (
-    <Card className={"flex flex-col " + (compact ? "gap-3 p-3!" : "gap-4")}>
+    <section className={"flex flex-col " + (compact ? "gap-4" : "gap-6")}>
       {showHeader && (
         <div>
-          <h2 className="text-xl font-bold text-ink">
+          <h2 className="text-2xl font-bold tracking-tight text-ink">
             {a.activity_name?.trim() || "Strength workout"}
           </h2>
-          <p className="mt-0.5 text-sm text-muted">
+          <p className="mt-1 text-sm text-muted">
             {formatDateLong(a.start_time_local)} · {formatTime(a.start_time_local)}
           </p>
         </div>
       )}
 
       {detailed ? (
-        <div className="flex flex-col gap-4">
+        <div className="flex flex-col gap-6">
           {metrics.map((m) => (
             <div key={m.key}>
-              <h3 className="mb-2 text-sm font-semibold uppercase tracking-wide text-muted">
-                {m.label}
-              </h3>
+              <h3 className="eyebrow mb-3">{m.label}</h3>
               <StatGrid>
                 {m.detail.map((s) => (
                   <Stat key={s.label} label={s.label} value={s.value} />
@@ -115,42 +113,16 @@ export function WorkoutCard({
           ))}
         </div>
       ) : (
-        <div className={"grid grid-cols-3 " + (compact ? "gap-1.5" : "gap-2")}>
-          {metrics.map((m) => (
-            <div
-              key={m.key}
-              className={
-                "min-h-16 rounded-xl bg-surface-2/60 text-center " +
-                (compact ? "px-1.5 py-2" : "px-2 py-2.5")
-              }
-            >
-              <div
-                className={
-                  "font-medium uppercase text-muted " +
-                  (compact ? "text-[11px] tracking-tight" : "text-xs tracking-wide")
-                }
-              >
-                {m.label}
-              </div>
-              <div
-                className={
-                  "mt-0.5 font-semibold tabular-nums text-ink whitespace-nowrap " +
-                  (compact ? "text-sm" : "text-base sm:text-lg")
-                }
-              >
-                {m.value}
-              </div>
-            </div>
-          ))}
-        </div>
+        <MetricRow
+          size={compact ? "sm" : "lg"}
+          items={metrics.map((m) => ({ label: m.label, value: m.value }))}
+        />
       )}
 
       <div>
-        <h3 className="mb-2 text-sm font-semibold uppercase tracking-wide text-muted">
-          Exercises
-        </h3>
+        <h3 className="eyebrow mb-3">Exercises</h3>
         <ExerciseSets groups={groups} />
       </div>
-    </Card>
+    </section>
   );
 }

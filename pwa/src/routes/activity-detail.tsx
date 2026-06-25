@@ -34,7 +34,7 @@ export default function ActivityDetail() {
 
       {zones.length > 0 && (
         <Card>
-          <h2 className="mb-3 text-lg font-semibold text-ink">HR zones</h2>
+          <h2 className="eyebrow mb-4">HR zones</h2>
           <Chart
             kind="bar"
             data={{

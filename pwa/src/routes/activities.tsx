@@ -14,7 +14,7 @@ const VIEWS = ["calendar", "list"] as const;
 type View = (typeof VIEWS)[number];
 
 const selectClass =
-  "min-h-12 w-full rounded-xl border border-line bg-surface-2 px-3 text-ink";
+  "min-h-12 w-full rounded-xl border border-line bg-surface px-3 text-ink";
 
 function ExpandedActivity({ id }: { id: string }) {
   const q = useActivity(id);
@@ -26,9 +26,9 @@ function ExpandedActivity({ id }: { id: string }) {
       <WorkoutCard data={q.data} showHeader={false} compact />
       <Link
         to={`/activities/${id}`}
-        className="flex min-h-12 items-center justify-center rounded-xl bg-accent px-4 text-sm font-semibold text-white active:opacity-80"
+        className="flex min-h-12 items-center justify-center gap-1.5 rounded-xl border border-line bg-surface px-4 text-sm font-semibold text-ink active:opacity-70"
       >
-        See more details
+        See more details <span className="text-accent" aria-hidden="true">→</span>
       </Link>
     </div>
   );
@@ -59,7 +59,7 @@ function ActivityItem({
         </>
       }
     >
-      <div className="border-t border-line/60 px-2 py-3">
+      <div className="border-t border-line/50 py-4">
         <ExpandedActivity id={String(a.activity_id)} />
       </div>
     </CollapsibleCard>
@@ -70,7 +70,7 @@ function ActivityItem({
 function ActivityList({ activities }: { activities: ActivityRow[] }) {
   const [openId, setOpenId] = useState<number | null>(null);
   return (
-    <ul className="flex flex-col gap-2">
+    <ul className="flex flex-col border-t border-line/70">
       {activities.map((a) => (
         <ActivityItem
           key={a.activity_id}
@@ -113,7 +113,7 @@ export default function Activities() {
     <div className="flex flex-col gap-4">
       <h1 className="text-2xl font-bold text-ink">Activities</h1>
 
-      <div className="flex rounded-xl bg-surface-2 p-1">
+      <div className="flex rounded-xl border border-line bg-surface-2 p-1">
         {VIEWS.map((v) => (
           <button
             key={v}
@@ -121,7 +121,7 @@ export default function Activities() {
             onClick={() => setView(v)}
             className={
               "min-h-11 flex-1 rounded-lg text-sm font-medium capitalize transition-colors " +
-              (view === v ? "bg-accent text-white" : "text-muted")
+              (view === v ? "bg-surface text-ink" : "text-muted")
             }
           >
             {v}
@@ -178,7 +178,7 @@ export default function Activities() {
           />
           {selectedDay && dayActivities.length > 0 ? (
             <div className="flex flex-col gap-2">
-              <h2 className="text-sm font-semibold uppercase tracking-wide text-muted">
+              <h2 className="eyebrow">
                 {formatDateLong(dayActivities[0]!.start_time_local)}
               </h2>
               <ActivityList activities={dayActivities} />

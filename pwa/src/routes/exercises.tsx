@@ -13,7 +13,7 @@ import { Empty, ErrorState, Loading } from "../components/state";
 import { formatDateLongMaybeYear, formatExerciseName } from "../lib/format";
 
 const inputClass =
-  "min-h-12 w-full rounded-xl border border-line bg-surface-2 px-4 text-ink placeholder:text-muted";
+  "min-h-12 w-full rounded-xl border border-line bg-surface px-4 text-ink placeholder:text-muted";
 
 function ExerciseItem({ ex }: { ex: ExerciseSummary }) {
   const [open, setOpen] = useState(false);
@@ -29,23 +29,21 @@ function ExerciseItem({ ex }: { ex: ExerciseSummary }) {
         </span>
       }
     >
-      <div className="flex flex-col gap-4 border-t border-line/60 p-4">
+      <div className="flex flex-col gap-5 border-t border-line/50 py-4">
         <div>
-          <h3 className="mb-2 text-sm font-semibold uppercase tracking-wide text-muted">
-            Recent sessions
-          </h3>
-          <div className="flex flex-col gap-3">
+          <h3 className="eyebrow mb-3">Recent sessions</h3>
+          <div className="flex flex-col gap-4">
             {ex.recentSessions.map((session) => (
               <Link
                 key={session.activityId}
                 to={`/activities/${session.activityId}`}
-                className="block rounded-xl active:opacity-70"
+                className="block active:opacity-70"
               >
                 <div className="mb-1 flex items-center justify-between text-sm font-medium text-accent">
                   <span>{formatDateLongMaybeYear(session.date)}</span>
                   <span aria-hidden="true">→</span>
                 </div>
-                <ul className="divide-y divide-line/40 rounded-xl bg-surface-2/50 px-3">
+                <ul className="divide-y divide-line/40 border-t border-line/40">
                   {session.sets.map((set, i) => (
                     <SetRow key={i} index={i + 1} set={set} />
                   ))}
@@ -57,9 +55,10 @@ function ExerciseItem({ ex }: { ex: ExerciseSummary }) {
 
         <Link
           to={`/exercises/${encodeURIComponent(ex.name)}`}
-          className="inline-flex min-h-12 items-center justify-center rounded-xl bg-accent px-4 text-sm font-semibold text-white active:opacity-80"
+          className="inline-flex min-h-12 items-center justify-center gap-1.5 rounded-xl border border-line bg-surface px-4 text-sm font-semibold text-ink active:opacity-70"
         >
-          View all sessions &amp; records →
+          View all sessions &amp; records{" "}
+          <span className="text-accent" aria-hidden="true">→</span>
         </Link>
       </div>
     </CollapsibleCard>
@@ -121,10 +120,10 @@ export default function Exercises() {
                 type="button"
                 onClick={() => setBodyPart(p)}
                 className={
-                  "inline-flex min-h-12 items-center rounded-full px-4 text-sm font-medium transition-colors " +
+                  "inline-flex min-h-12 items-center rounded-full border px-4 text-sm font-medium transition-colors " +
                   (active
-                    ? "bg-accent text-white"
-                    : "bg-surface-2 text-muted active:bg-surface-2/70")
+                    ? "border-accent/40 bg-accent/10 text-accent"
+                    : "border-line text-muted active:bg-surface-2/70")
                 }
               >
                 {p}
@@ -137,7 +136,7 @@ export default function Exercises() {
       {filtered.length === 0 ? (
         <p className="py-12 text-center text-muted">No exercises match your filters.</p>
       ) : (
-        <ul className="flex flex-col gap-2">
+        <ul className="flex flex-col border-t border-line/70">
           {filtered.map((ex) => (
             <ExerciseItem key={ex.name} ex={ex} />
           ))}
