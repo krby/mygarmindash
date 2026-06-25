@@ -9,6 +9,13 @@ const DATE_LONG = new Intl.DateTimeFormat(undefined, {
   day: "numeric",
 });
 
+const DATE_LONG_YEAR = new Intl.DateTimeFormat(undefined, {
+  weekday: "short",
+  month: "short",
+  day: "numeric",
+  year: "numeric",
+});
+
 const DATE_SHORT = new Intl.DateTimeFormat(undefined, {
   month: "short",
   day: "numeric",
@@ -28,6 +35,19 @@ const parse = (v: unknown): Date | null => {
 export const formatDateLong = (v: unknown): string =>
   parse(v) ? DATE_LONG.format(parse(v)!) : "—";
 
+/**
+ * Like {@link formatDateLong}, but appends the year when the date isn't in the
+ * current year — so an older "last session" reads "Mon, Jan 5, 2024" instead of
+ * an ambiguous "Mon, Jan 5".
+ */
+export const formatDateLongMaybeYear = (v: unknown): string => {
+  const d = parse(v);
+  if (!d) return "—";
+  return d.getFullYear() === new Date().getFullYear()
+    ? DATE_LONG.format(d)
+    : DATE_LONG_YEAR.format(d);
+};
+
 export const formatDateShort = (v: unknown): string =>
   parse(v) ? DATE_SHORT.format(parse(v)!) : "—";
 
@@ -44,6 +64,16 @@ export const formatDuration = (seconds: unknown): string => {
   return `${m}m ${String(sec).padStart(2, "0")}s`;
 };
 
+/** Format a duration as m:ss (e.g. 90 → "1:30"). For short spans like HR-zone
+ * time where the bare second count is hard to parse. */
+export const formatMinSec = (seconds: unknown): string => {
+  const s = typeof seconds === "number" ? seconds : Number(seconds);
+  if (!Number.isFinite(s) || s < 0) return "—";
+  const m = Math.floor(s / 60);
+  const sec = Math.round(s % 60);
+  return `${m}:${String(sec).padStart(2, "0")}`;
+};
+
 export const formatDistance = (meters: unknown): string => {
   const m = typeof meters === "number" ? meters : Number(meters);
   if (!Number.isFinite(m)) return "—";
@@ -57,7 +87,10 @@ export const formatElevation = (meters: number | null | undefined): string => {
 
 export const formatStrengthWeight = (grams: number | null | undefined): string => {
   if (grams == null || !Number.isFinite(grams) || grams <= 0) return "bodyweight";
-  return `${(grams / GRAMS_PER_POUND).toFixed(1)} lb`;
+  // Snap to the nearest half-pound: clears float noise from the gram→lb
+  // conversion (45.1 → 45) while preserving real plate weights (47.5 stays 47.5).
+  const lb = Math.round((grams / GRAMS_PER_POUND) * 2) / 2;
+  return `${lb} lb`;
 };
 
 /** Garmin's body-weight rows store grams. */

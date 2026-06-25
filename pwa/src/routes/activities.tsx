@@ -1,7 +1,9 @@
 import { useMemo, useState } from "react";
+import { Link } from "react-router-dom";
 import { useActivities, useActivity, usePrefetchActivities } from "../api/hooks";
 import type { ActivityRow } from "../api/types";
 import { WorkoutCard } from "../components/workout-card";
+import { CollapsibleCard } from "../components/collapsible-card";
 import { ErrorState, Loading } from "../components/state";
 import { formatDateLong, formatDistance, formatDuration } from "../lib/format";
 
@@ -15,7 +17,17 @@ function ExpandedActivity({ id }: { id: string }) {
   if (q.isLoading) return <Loading />;
   if (q.error) return <ErrorState error={q.error} onRetry={() => q.refetch()} />;
   if (!q.data) return null;
-  return <WorkoutCard data={q.data} showHeader={false} />;
+  return (
+    <div className="flex flex-col gap-3">
+      <WorkoutCard data={q.data} showHeader={false} compact />
+      <Link
+        to={`/activities/${id}`}
+        className="flex min-h-12 items-center justify-center rounded-xl bg-accent px-4 text-sm font-semibold text-white active:opacity-80"
+      >
+        See more details
+      </Link>
+    </div>
+  );
 }
 
 function ActivityItem({
@@ -27,43 +39,26 @@ function ActivityItem({
   open: boolean;
   onToggle: () => void;
 }) {
+  // Hide distance for strength/indoor activities, where it's null or rounds to 0.00 mi.
+  const dist = a.distance_meters != null ? formatDistance(a.distance_meters) : null;
+  const distance = dist && dist !== "0.00 mi" && dist !== "—" ? dist : null;
   return (
-    <li className="overflow-hidden rounded-2xl border border-line/60 bg-surface">
-      <button
-        type="button"
-        onClick={onToggle}
-        aria-expanded={open}
-        className="flex w-full items-center justify-between gap-3 px-4 py-3 text-left active:bg-surface-2/50"
-      >
-        <div className="min-w-0">
-          <div className="truncate font-semibold text-ink">
-            {a.activity_name?.trim() || a.activity_type || "Activity"}
-          </div>
-          <div className="mt-0.5 flex flex-wrap gap-x-3 gap-y-0.5 text-sm text-muted">
-            <span>{formatDateLong(a.start_time_local)}</span>
-            {a.distance_meters != null && <span>{formatDistance(a.distance_meters)}</span>}
-            <span>{formatDuration(a.duration_seconds)}</span>
-          </div>
-        </div>
-        <svg
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth={2}
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          className={"h-5 w-5 shrink-0 text-muted transition-transform " + (open ? "rotate-180" : "")}
-          aria-hidden="true"
-        >
-          <path d="m6 9 6 6 6-6" />
-        </svg>
-      </button>
-      {open && (
-        <div className="border-t border-line/60 p-3">
-          <ExpandedActivity id={String(a.activity_id)} />
-        </div>
-      )}
-    </li>
+    <CollapsibleCard
+      open={open}
+      onToggle={onToggle}
+      title={a.activity_name?.trim() || a.activity_type || "Activity"}
+      subtitle={
+        <>
+          <span>{formatDateLong(a.start_time_local)}</span>
+          {distance && <span>{distance}</span>}
+          <span>{formatDuration(a.duration_seconds)}</span>
+        </>
+      }
+    >
+      <div className="border-t border-line/60 px-2 py-3">
+        <ExpandedActivity id={String(a.activity_id)} />
+      </div>
+    </CollapsibleCard>
   );
 }
 

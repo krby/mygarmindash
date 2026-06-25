@@ -301,8 +301,7 @@ def cmd_discover_tables(local: LocalDB, config: dict) -> int:
     print(f"{len(unclassified)} unclassified tables "
           f"(of {len(discovered)} local). Add to config.toml:\n")
     for name in unclassified:
-        cols = [r["name"] for r in local.execute(
-            f"PRAGMA table_info({qident(name)})").fetchall()]
+        cols = get_columns(local, name)
         date_like = [c for c in cols if any(
             k in c.lower() for k in ("date", "time", "timestamp"))]
         if date_like:

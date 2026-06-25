@@ -6,6 +6,8 @@ import {
   groupExerciseSets,
   setDurationsByType,
   aggregateExercises,
+  exerciseDetail,
+  bodyPartFor,
 } from "../src/lib/garmin";
 import { METERS_PER_MILE } from "../src/lib/format";
 import type {
@@ -216,12 +218,25 @@ describe("aggregateExercises", () => {
     expect(out).toHaveLength(1);
     const bench = out[0]!;
     expect(bench.name).toBe("BENCH");
+    expect(bench.bodyPart).toBe("Chest");
     expect(bench.lastDate).toBe("2024-02-01T10:00:00");
     expect(bench.lastActivityId).toBe(2);
     expect(bench.totalSessions).toBe(2);
-    expect(bench.recentSets).toEqual([
-      { reps: 5, weightGrams: 50000 },
-      { reps: 8, weightGrams: 40000 },
+    // recentSessions are newest-first, each carrying that workout's sets.
+    expect(bench.recentSessions).toEqual([
+      {
+        activityId: 2,
+        date: "2024-02-01T10:00:00",
+        sets: [
+          { reps: 5, weightGrams: 50000 },
+          { reps: 8, weightGrams: 40000 },
+        ],
+      },
+      {
+        activityId: 1,
+        date: "2024-01-01T10:00:00",
+        sets: [{ reps: 10, weightGrams: 30000 }],
+      },
     ]);
     expect(bench.record.maxWeightGrams).toBe(50000);
     expect(bench.record.maxReps).toBe(10);
@@ -238,5 +253,84 @@ describe("aggregateExercises", () => {
       s({ activity_id: 2, start_time_local: "2024-03-01T10:00:00", name: null }),
     ]);
     expect(out.map((e) => e.name)).toEqual(["NEW", "OLD"]);
+  });
+
+  it("caps recentSessions at the 3 newest workouts but counts all sessions", () => {
+    const rows = [1, 2, 3, 4, 5].map((id) =>
+      s({
+        activity_id: id,
+        start_time_local: `2024-0${id}-01T10:00:00`,
+        name: "SQUAT",
+        reps: 5,
+        weight: 60000,
+      }),
+    );
+    const squat = aggregateExercises(rows)[0]!;
+    expect(squat.totalSessions).toBe(5);
+    expect(squat.recentSessions).toHaveLength(3);
+    expect(squat.recentSessions.map((sess) => sess.activityId)).toEqual([5, 4, 3]);
+  });
+});
+
+describe("exerciseDetail", () => {
+  const s = (over: Partial<ExerciseSetAgg>): ExerciseSetAgg => ({
+    activity_id: 1,
+    set_number: 1,
+    start_time_local: "2024-01-01T10:00:00",
+    name: null,
+    reps: null,
+    weight: null,
+    ...over,
+  });
+
+  it("returns every session (uncapped) newest-first with records for one name", () => {
+    const rows = [1, 2, 3, 4, 5].map((id) =>
+      s({
+        activity_id: id,
+        start_time_local: `2024-0${id}-01T10:00:00`,
+        name: "SQUAT",
+        reps: 5,
+        weight: 60000,
+      }),
+    );
+    // Another exercise that must be excluded from the SQUAT detail.
+    rows.push(s({ activity_id: 9, name: "BENCH", reps: 3, weight: 80000 }));
+
+    const detail = exerciseDetail(rows, "SQUAT")!;
+    expect(detail.name).toBe("SQUAT");
+    expect(detail.bodyPart).toBe("Legs");
+    expect(detail.totalSessions).toBe(5);
+    expect(detail.sessions).toHaveLength(5);
+    expect(detail.sessions.map((sess) => sess.activityId)).toEqual([5, 4, 3, 2, 1]);
+    expect(detail.lastDate).toBe("2024-05-01T10:00:00");
+    expect(detail.record.maxWeightGrams).toBe(60000);
+  });
+
+  it("returns null for an unknown exercise name", () => {
+    expect(exerciseDetail([s({ name: "SQUAT" })], "DEADLIFT")).toBeNull();
+  });
+});
+
+describe("bodyPartFor", () => {
+  it("classifies exercises by keyword, first match wins", () => {
+    expect(bodyPartFor("BARBELL_BENCH_PRESS")).toBe("Chest");
+    expect(bodyPartFor("LAT_PULLDOWN")).toBe("Back");
+    expect(bodyPartFor("ROMANIAN_DEADLIFT")).toBe("Back");
+    expect(bodyPartFor("DUMBBELL_SHOULDER_PRESS")).toBe("Shoulders");
+    expect(bodyPartFor("BARBELL_BACK_SQUAT")).toBe("Legs");
+    expect(bodyPartFor("LEG_CURL")).toBe("Legs");
+    expect(bodyPartFor("HANGING_LEG_RAISE")).toBe("Core");
+    expect(bodyPartFor("BICEPS_CURL")).toBe("Arms");
+    expect(bodyPartFor("TRICEPS_EXTENSION")).toBe("Arms");
+    expect(bodyPartFor("RUNNING")).toBe("Cardio");
+    expect(bodyPartFor("SOME_RANDOM_MOVE")).toBe("Other");
+    expect(bodyPartFor(null)).toBe("Other");
+  });
+
+  it("normalizes separators so spaced/hyphenated labels match too", () => {
+    // BACK_EXTENSION (Back) must win over the generic EXTENSION (Arms) rule
+    // even when the label uses spaces instead of underscores.
+    expect(bodyPartFor("weighted ghd back extensions")).toBe("Back");
+    expect(bodyPartFor("Lat-Pulldown")).toBe("Back");
   });
 });

@@ -1,15 +1,22 @@
-import type { ExerciseGroup, ParsedExerciseSet } from "../lib/garmin";
+import type { ExerciseGroup } from "../lib/garmin";
 import { formatExerciseName, formatStrengthWeight } from "../lib/format";
 
-/** One `Set N · reps · weight` row. */
-function SetRow({ index, set }: { index: number; set: ParsedExerciseSet }) {
+/** One `Set N · reps · weight` row. Only needs reps + weight, so both
+ * `ParsedExerciseSet` and the lighter `RecentSet` satisfy it. */
+export function SetRow({
+  index,
+  set,
+}: {
+  index: number;
+  set: { reps: number | null; weightGrams: number | null };
+}) {
   const reps = set.reps != null ? `${set.reps} reps` : "—";
   const weight = formatStrengthWeight(set.weightGrams);
   return (
-    <li className="flex items-center justify-between py-1.5 text-sm">
+    <li className="grid grid-cols-3 items-center py-1.5 text-sm">
       <span className="text-muted">Set {index}</span>
-      <span className="font-medium tabular-nums text-ink">{reps}</span>
-      <span className="tabular-nums text-muted">{weight}</span>
+      <span className="text-center font-medium tabular-nums text-ink">{reps}</span>
+      <span className="text-right tabular-nums text-muted">{weight}</span>
     </li>
   );
 }

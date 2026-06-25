@@ -7,6 +7,7 @@ const Home = lazy(() => import("./routes/home"));
 const Activities = lazy(() => import("./routes/activities"));
 const ActivityDetail = lazy(() => import("./routes/activity-detail"));
 const Exercises = lazy(() => import("./routes/exercises"));
+const Exercise = lazy(() => import("./routes/exercise"));
 const Settings = lazy(() => import("./routes/settings"));
 
 export default function App() {
@@ -20,6 +21,7 @@ export default function App() {
             <Route path="/activities" element={<Activities />} />
             <Route path="/activities/:id" element={<ActivityDetail />} />
             <Route path="/exercises" element={<Exercises />} />
+            <Route path="/exercises/:name" element={<Exercise />} />
             <Route path="/settings" element={<Settings />} />
             <Route path="*" element={<Navigate to="/home" replace />} />
           </Routes>

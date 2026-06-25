@@ -157,12 +157,69 @@ export interface RecentSet {
   weightGrams: number | null;
 }
 
+/** One workout's worth of an exercise's sets, for the expanded history view. */
+export interface ExerciseSession {
+  activityId: number;
+  date: string;
+  sets: RecentSet[];
+}
+
+/** How many recent sessions the expanded Exercises view shows. */
+export const RECENT_SESSIONS = 3;
+
+/**
+ * Coarse muscle-group buckets for the Exercises body-part filter.
+ *
+ * STOPGAP — like the raw_json parsing above, this is keyword heuristics over
+ * Garmin's exercise label (the specific name, or the category when name is
+ * null), not a real taxonomy. Garmin has no body-part field; the long-term fix
+ * is a promoted `exercise_category` column upstream (see README "Follow-ups").
+ * Rules are tried in order, first match wins, so more-specific groups precede
+ * the catch-alls (e.g. LEG_RAISE → Core before the generic LEG → Legs rule).
+ */
+export const BODY_PARTS = [
+  "Chest",
+  "Back",
+  "Shoulders",
+  "Core",
+  "Legs",
+  "Arms",
+  "Cardio",
+  "Other",
+] as const;
+
+export type BodyPart = (typeof BODY_PARTS)[number];
+
+const BODY_PART_RULES: { part: Exclude<BodyPart, "Other">; keywords: string[] }[] = [
+  { part: "Chest", keywords: ["BENCH", "CHEST", "FLYE", "PEC", "PUSH_UP", "PUSHUP", "DIP"] },
+  { part: "Back", keywords: ["PULL_UP", "PULLUP", "CHIN_UP", "PULLDOWN", "PULL_DOWN", "LAT_PULL", "ROW", "DEADLIFT", "SHRUG", "HYPEREXTENSION", "BACK_EXTENSION", "FACE_PULL", "PULL"] },
+  { part: "Shoulders", keywords: ["SHOULDER", "OVERHEAD_PRESS", "MILITARY", "LATERAL_RAISE", "FRONT_RAISE", "DELT", "ARNOLD"] },
+  { part: "Core", keywords: ["CORE", "CRUNCH", "PLANK", "SIT_UP", "SITUP", "OBLIQUE", "RUSSIAN_TWIST", "ABDOMINAL", "LEG_RAISE", "KNEE_RAISE", "HANGING", "FLUTTER", "MOUNTAIN_CLIMBER", "BICYCLE"] },
+  { part: "Legs", keywords: ["SQUAT", "LUNGE", "LEG", "CALF", "GLUTE", "HIP", "HAMSTRING", "QUAD", "STEP_UP", "ABDUCTION", "ADDUCTION", "THRUST"] },
+  { part: "Arms", keywords: ["CURL", "TRICEP", "BICEP", "FOREARM", "EXTENSION", "SKULL_CRUSHER", "PUSHDOWN", "PRESSDOWN"] },
+  { part: "Cardio", keywords: ["CARDIO", "RUN", "BIKE", "ELLIPTICAL", "PLYO", "BURPEE", "JUMP", "SKI_ERG", "BATTLE_ROPE"] },
+];
+
+/** Classify a Garmin exercise label (name or category) into a body part. */
+export const bodyPartFor = (label: string | null | undefined): BodyPart => {
+  if (!label) return "Other";
+  // Normalize any separator (space, hyphen) to "_" so keywords like
+  // BACK_EXTENSION match regardless of how the label is punctuated.
+  const key = label.toUpperCase().replace(/[^A-Z0-9]+/g, "_");
+  for (const { part, keywords } of BODY_PART_RULES) {
+    if (keywords.some((k) => key.includes(k))) return part;
+  }
+  return "Other";
+};
+
 export interface ExerciseSummary {
   name: string;
+  /** Coarse muscle group for the body-part filter; "Other" when unclassified. */
+  bodyPart: BodyPart;
   lastDate: string | null;
   lastActivityId: number | null;
-  /** Sets from the most recent session this exercise appeared in. */
-  recentSets: RecentSet[];
+  /** The most recent sessions (newest first), capped at RECENT_SESSIONS. */
+  recentSessions: ExerciseSession[];
   /** How many separate workouts included this exercise. */
   totalSessions: number;
   record: ExerciseRecord;
@@ -174,14 +231,8 @@ const max = (a: number | null, b: number | null): number | null => {
   return Math.max(a, b);
 };
 
-/**
- * Aggregate every logged ACTIVE set into a per-exercise summary: last-performed
- * date, the most recent session's sets, and all-time derived records. Rows come
- * pre-extracted/filtered from `/api/exercise-sets` (exercise name + grams
- * weight); see [[schema-translation-boundary]] for why this read happens
- * server-side.
- */
-export const aggregateExercises = (rows: ExerciseSetAgg[]): ExerciseSummary[] => {
+/** Group ACTIVE-set rows by exercise name, dropping rows without a name. */
+const byExerciseName = (rows: ExerciseSetAgg[]): Map<string, ExerciseSetAgg[]> => {
   const byName = new Map<string, ExerciseSetAgg[]>();
   for (const row of rows) {
     if (!row.name) continue;
@@ -189,60 +240,125 @@ export const aggregateExercises = (rows: ExerciseSetAgg[]): ExerciseSummary[] =>
     list.push(row);
     byName.set(row.name, list);
   }
+  return byName;
+};
 
+interface ExerciseAggregate {
+  /** Every session this exercise appeared in, newest first. */
+  sessions: ExerciseSession[];
+  totalSessions: number;
+  record: ExerciseRecord;
+}
+
+/**
+ * Reduce one exercise's sets to its full session history (newest first) plus
+ * all-time derived records. The list summary caps the sessions to the most
+ * recent few; the detail page paginates them. Shared so both views agree.
+ */
+const aggregateOne = (sets: ExerciseSetAgg[]): ExerciseAggregate => {
+  // Group sets into sessions (by activity) for per-session sets and volume.
+  const sessions = new Map<number, ExerciseSetAgg[]>();
+  for (const row of sets) {
+    const list = sessions.get(row.activity_id) ?? [];
+    list.push(row);
+    sessions.set(row.activity_id, list);
+  }
+
+  let bestSessionVolumeGrams: number | null = null;
+  const sessionList: ExerciseSession[] = [];
+  for (const [activityId, sessionSets] of sessions) {
+    sessionList.push({
+      activityId,
+      date: sessionSets[0]!.start_time_local,
+      sets: sessionSets.map((row) => ({ reps: row.reps, weightGrams: row.weight })),
+    });
+    let volume = 0;
+    let hasVolume = false;
+    for (const row of sessionSets) {
+      if (row.reps != null && row.weight != null && row.weight > 0) {
+        volume += row.reps * row.weight;
+        hasVolume = true;
+      }
+    }
+    if (hasVolume) bestSessionVolumeGrams = max(bestSessionVolumeGrams, volume);
+  }
+  sessionList.sort((a, b) => b.date.localeCompare(a.date));
+
+  let maxWeightGrams: number | null = null;
+  let maxReps: number | null = null;
+  let bestEst1RmGrams: number | null = null;
+  for (const row of sets) {
+    if (row.weight != null && row.weight > 0) {
+      maxWeightGrams = max(maxWeightGrams, row.weight);
+      if (row.reps != null && row.reps > 0) {
+        bestEst1RmGrams = max(bestEst1RmGrams, row.weight * (1 + row.reps / 30));
+      }
+    }
+    if (row.reps != null) maxReps = max(maxReps, row.reps);
+  }
+
+  return {
+    sessions: sessionList,
+    totalSessions: sessions.size,
+    record: { maxWeightGrams, maxReps, bestEst1RmGrams, bestSessionVolumeGrams },
+  };
+};
+
+/**
+ * Aggregate every logged ACTIVE set into a per-exercise summary: last-performed
+ * date, the most recent sessions' sets, and all-time derived records. Rows come
+ * pre-extracted/filtered from `/api/exercise-sets` (exercise name + grams
+ * weight); see [[schema-translation-boundary]] for why this read happens
+ * server-side.
+ */
+export const aggregateExercises = (rows: ExerciseSetAgg[]): ExerciseSummary[] => {
   const summaries: ExerciseSummary[] = [];
-  for (const [name, sets] of byName) {
-    // Group sets into sessions (by activity) to find the latest and best volume.
-    const sessions = new Map<number, ExerciseSetAgg[]>();
-    for (const row of sets) {
-      const list = sessions.get(row.activity_id) ?? [];
-      list.push(row);
-      sessions.set(row.activity_id, list);
-    }
-
-    let latest: { activityId: number; date: string } | null = null;
-    let bestSessionVolumeGrams: number | null = null;
-    for (const [activityId, sessionSets] of sessions) {
-      const date = sessionSets[0]!.start_time_local;
-      if (!latest || date > latest.date) latest = { activityId, date };
-      let volume = 0;
-      let hasVolume = false;
-      for (const row of sessionSets) {
-        if (row.reps != null && row.weight != null && row.weight > 0) {
-          volume += row.reps * row.weight;
-          hasVolume = true;
-        }
-      }
-      if (hasVolume) bestSessionVolumeGrams = max(bestSessionVolumeGrams, volume);
-    }
-
-    let maxWeightGrams: number | null = null;
-    let maxReps: number | null = null;
-    let bestEst1RmGrams: number | null = null;
-    for (const row of sets) {
-      if (row.weight != null && row.weight > 0) {
-        maxWeightGrams = max(maxWeightGrams, row.weight);
-        if (row.reps != null && row.reps > 0) {
-          bestEst1RmGrams = max(bestEst1RmGrams, row.weight * (1 + row.reps / 30));
-        }
-      }
-      if (row.reps != null) maxReps = max(maxReps, row.reps);
-    }
-
+  for (const [name, sets] of byExerciseName(rows)) {
+    const { sessions, totalSessions, record } = aggregateOne(sets);
     summaries.push({
       name,
-      lastDate: latest?.date ?? null,
-      lastActivityId: latest?.activityId ?? null,
-      recentSets: latest
-        ? sessions
-            .get(latest.activityId)!
-            .map((row) => ({ reps: row.reps, weightGrams: row.weight }))
-        : [],
-      totalSessions: sessions.size,
-      record: { maxWeightGrams, maxReps, bestEst1RmGrams, bestSessionVolumeGrams },
+      bodyPart: bodyPartFor(name),
+      lastDate: sessions[0]?.date ?? null,
+      lastActivityId: sessions[0]?.activityId ?? null,
+      recentSessions: sessions.slice(0, RECENT_SESSIONS),
+      totalSessions,
+      record,
     });
   }
 
   summaries.sort((a, b) => (b.lastDate ?? "").localeCompare(a.lastDate ?? ""));
   return summaries;
+};
+
+/** Records plus the *full* session history for one exercise's detail page. */
+export interface ExerciseDetail {
+  name: string;
+  bodyPart: BodyPart;
+  lastDate: string | null;
+  totalSessions: number;
+  record: ExerciseRecord;
+  /** Every session, newest first. Paginate on render. */
+  sessions: ExerciseSession[];
+}
+
+/**
+ * Build the detail view for a single exercise from the already-cached
+ * `/api/exercise-sets` payload — no extra fetch. Returns null when the exercise
+ * has no logged sets (e.g. an unknown name in the URL).
+ */
+export const exerciseDetail = (
+  rows: ExerciseSetAgg[],
+  name: string,
+): ExerciseDetail | null => {
+  const sets = rows.filter((r) => r.name === name);
+  if (sets.length === 0) return null;
+  const { sessions, totalSessions, record } = aggregateOne(sets);
+  return {
+    name,
+    bodyPart: bodyPartFor(name),
+    lastDate: sessions[0]?.date ?? null,
+    totalSessions,
+    record,
+    sessions,
+  };
 };

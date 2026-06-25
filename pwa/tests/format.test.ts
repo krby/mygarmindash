@@ -9,6 +9,7 @@ import {
   formatTemperature,
   formatExerciseName,
   formatDateLong,
+  formatDateLongMaybeYear,
   formatDateShort,
   formatTime,
 } from "../src/lib/format";
@@ -58,8 +59,16 @@ describe("formatElevation", () => {
 });
 
 describe("formatStrengthWeight", () => {
-  it("converts grams to pounds", () => {
-    expect(formatStrengthWeight(45359)).toBe("100.0 lb");
+  it("converts grams to whole pounds", () => {
+    expect(formatStrengthWeight(45359)).toBe("100 lb");
+  });
+  it("snaps conversion noise to the nearest half pound", () => {
+    // ~45.1 lb of grams collapses to a clean 45.
+    expect(formatStrengthWeight(20460)).toBe("45 lb");
+  });
+  it("preserves real half-pound weights", () => {
+    // 7.5 lb in grams stays 7.5.
+    expect(formatStrengthWeight(3375)).toBe("7.5 lb");
   });
   it("treats 0 / null as bodyweight", () => {
     expect(formatStrengthWeight(0)).toBe("bodyweight");
@@ -109,5 +118,17 @@ describe("date formatters (locale/TZ-independent assertions)", () => {
   it("formats a valid date string to something non-empty", () => {
     expect(formatDateLong("2024-01-02")).not.toBe("—");
     expect(formatTime("2024-01-02T10:30:00")).not.toBe("—");
+  });
+
+  it("formatDateLongMaybeYear shows the year only outside the current year", () => {
+    const thisYear = new Date().getFullYear();
+    // Mid-year date avoids any timezone roll-over across the year boundary.
+    expect(formatDateLongMaybeYear(`${thisYear}-07-15`)).not.toContain(
+      String(thisYear),
+    );
+    expect(formatDateLongMaybeYear(`${thisYear - 1}-07-15`)).toContain(
+      String(thisYear - 1),
+    );
+    expect(formatDateLongMaybeYear(null)).toBe("—");
   });
 });
